@@ -88,7 +88,7 @@ def list_bookmarks(bookmarks, name):
         if bookmark.startswith(name):
             if len(bookmark) > max_length:
                 max_length = len(bookmark)
-    format_string = "%%%ds %%s\n" % (max_length)
+    format_string = "%%-%ds %%s\n" % (max_length)
     for bookmark in sorted(bookmarks):
         if bookmark.startswith(name):
             sys.stderr.write(format_string % (bookmark, bookmarks[bookmark]))
