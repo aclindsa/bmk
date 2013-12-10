@@ -123,12 +123,14 @@ def main():
     parser.add_argument("bookmark", action="store", default="", nargs="?", help="Bookmark name")
     options = parser.parse_args()
 
+    if options.help:
+        parser.print_help(sys.stderr)
+        sys.exit(0)
+
     bookmark_filename = join(expanduser("~"), ".bmk_bookmarks")
     bookmarks = read_bookmark_file(bookmark_filename)
 
-    if options.help:
-        parser.print_help(sys.stderr)
-    elif options.add:
+    if options.add:
         bookmarks = add_bookmark(bookmarks, options.bookmark, options.add)
         write_bookmark_file(bookmark_filename, bookmarks)
     elif options.edit:
