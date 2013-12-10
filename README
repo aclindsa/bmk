@@ -1,0 +1,13 @@
+README for bmk,
+A shell directory bookmarking tool
+Copyright (C) 2013: Aaron Lindsay <aaron@aclindsay.com>
+
+This tool is fairly self-explanatory, and its options can be explored using
+'-h'. It allows you to create named bookmarks which point to directories in
+your filesystem and to easily retrieve/use those bookmarks. There is an example
+in .bashrc_example that demonstrates how to create a shell function to change
+directories from within your shell without having to do ugly things such as:
+	$ cd `bmk bookmark_name`
+
+Additionally, there are shell tab-completion scripts for bash and zsh in their
+respective directories under completion/.

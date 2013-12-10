@@ -1,0 +1,13 @@
+# The following is an example of how to use bmk with a function ('jmp' in this
+# case) to make jumping to your bookmarked directories easier. If you use a
+# function named something other than 'jmp' and wish to have tab-completion
+# work with it, you will have to update the jmp completion scripts for your
+# function.
+
+# This function calls 'bmk' with the supplied arguments, changing directories to
+# whatever text is printed on stdout. 'bmk' sends all output to stderr except
+# for the bookmark path itself, so this will not fail if an error occurs.
+jmp() {
+	dir=$(bmk $@)
+	[[ -n "$dir" ]] && cd $dir
+}

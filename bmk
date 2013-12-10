@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+
+# bmk, A shell directory bookmarking tool
+# Copyright (C) 2013: Aaron Lindsay <aaron@aclindsay.com>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+# Also add information on how to contact you by electronic and paper mail.
+
+import argparse
+from os.path import expanduser, join, exists
+import sys
+
+class StderrArgParser(argparse.ArgumentParser):
+    def error(self, message):
+        sys.stderr.write("%s\n" % (message))
+        sys.exit(1)
+
+def read_bookmark_file(filename):
+    if not exists(filename):
+        return {}
+
+    try:
+        ifile = open(filename, 'r')
+    except IOError as e:
+        sys.stderr.write("Error opening bookmarks file (%s):" % filename)
+        sys.stderr.write( "I/O error({0}): {1}\n".format(e.errno, e.strerror))
+        sys.exit(1)
+    bookmarks = {}
+    for line in ifile:
+        csv = line.strip().split(",")
+        if len(csv) is not 2:
+            sys.stderr.write("Error: Bookmarks file (%s) corrupted.\n" % (filename))
+            sys.exit(1)
+        bookmarks[csv[0]] = csv[1]
+    ifile.close()
+    return bookmarks
+
+def ensure_name_not_empty(name):
+    if len(name.strip()) is 0:
+        sys.stderr.write("Error: bookmark name is empty\n")
+        sys.exit(1)
+
+def write_bookmark_file(filename, bookmarks):
+    #If bookmarks is passed in as None, it means no change was made
+    if bookmarks is None:
+        return
+
+    ofile = open(filename, 'w')
+    for key in bookmarks.keys():
+        ofile.write("%s,%s\n" % (key, bookmarks[key]))
+    ofile.close()
+
+def add_bookmark(bookmarks, name, path):
+    ensure_name_not_empty(name)
+    if name in bookmarks:
+        sys.stderr.write("Bookmark '%s' already exists.\n" % (name))
+        return None
+    else:
+        bookmarks[name] = path
+        return bookmarks
+
+def read_bookmark(bookmarks, search_string):
+    ensure_name_not_empty(search_string)
+    for bookmark in bookmarks:
+        if bookmark.startswith(search_string):
+            sys.stdout.write("%s\n" % (bookmarks[bookmark]))
+            return
+    sys.stderr.write("No such bookmark found\n")
+
+def list_bookmarks_completion(bookmarks):
+    sys.stdout.write(" ".join(bookmarks.keys()))
+
+def list_bookmarks(bookmarks, name):
+    max_length = 0
+    for bookmark in bookmarks:
+        if bookmark.startswith(name):
+            if len(bookmark) > max_length:
+                max_length = len(bookmark)
+    format_string = "%%%ds %%s\n" % (max_length)
+    for bookmark in sorted(bookmarks):
+        if bookmark.startswith(name):
+            sys.stderr.write(format_string % (bookmark, bookmarks[bookmark]))
+
+def edit_bookmark(bookmarks, name, path):
+    ensure_name_not_empty(name)
+    for bookmark in bookmarks:
+        if bookmark == name:
+            bookmarks[name] = path
+            return bookmarks
+    sys.stderr.write("Bookmark '%s' not found\n" % (name))
+    return None
+
+def remove_bookmark(bookmarks, name):
+    ensure_name_not_empty(name)
+    for bookmark in bookmarks:
+        if bookmark == name:
+            del bookmarks[name]
+            return bookmarks
+    sys.stderr.write("Bookmark '%s' not found\n" % (name))
+    return None
+
+def main():
+    parser = StderrArgParser(description='Shell bookmark management', add_help=False)
+    action_group = parser.add_mutually_exclusive_group()
+    action_group.add_argument("-h,", "--help", action="store_true", dest="help", help="Show this help message and exit")
+    action_group.add_argument("-a,", "--add", action="store", dest="add", help="Add bookmark with path")
+    action_group.add_argument("-e", "--edit", action="store", dest="edit", help="Update bookmark to point to path")
+    action_group.add_argument("-r", "--remove", action="store_true", dest="remove", help="Remove bookmark with name")
+    action_group.add_argument("-c", "--completion-list", action="store_true", dest="completion_list", help="List bookmarks formatted for autocompletion")
+    action_group.add_argument("-l", "--list", action="store_true", dest="list", help="List bookmarks (that begin with the given string, if one is given)")
+    parser.add_argument("bookmark", action="store", default="", nargs="?", help="Bookmark name")
+    options = parser.parse_args()
+
+    bookmark_filename = join(expanduser("~"), ".bmk_bookmarks")
+    bookmarks = read_bookmark_file(bookmark_filename)
+
+    if options.help:
+        parser.print_help(sys.stderr)
+    elif options.add:
+        bookmarks = add_bookmark(bookmarks, options.bookmark, options.add)
+        write_bookmark_file(bookmark_filename, bookmarks)
+    elif options.edit:
+        bookmarks = edit_bookmark(bookmarks, options.bookmark, options.edit)
+        write_bookmark_file(bookmark_filename, bookmarks)
+    elif options.remove:
+        bookmarks = remove_bookmark(bookmarks, options.bookmark)
+        write_bookmark_file(bookmark_filename, bookmarks)
+    elif options.list:
+        list_bookmarks(bookmarks, options.bookmark)
+    elif options.completion_list:
+        list_bookmarks_completion(bookmarks)
+    else:
+        read_bookmark(bookmarks, options.bookmark)
+
+if __name__ == "__main__":
+    main()
